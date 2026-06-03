@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>投喂大作战</title>
+<style>
+  :root {
+    --cyan: #00e5ff;
+    --blue: #2979ff;
+    --gold: #ffd740;
+    --red: #ff5252;
+    --green: #69f0ae;
+    --bg-dark: #0a0e17;
+    --bg-card: #141b25;
+    --border: #263040;
+    --text: #e0e0e0;
+    --text-dim: #6b7b8d;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    background: #05080f;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    font-family: 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #gameContainer {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    background: #0a0e17;
+  }
+
+  @media (min-width: 800px) {
+    #gameContainer {
+      max-width: 800px;
+      max-height: 100vh;
+    }
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+  }
+
+  /* Start Screen */
+  #startScreen {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(ellipse at 50% 30%, #141b25 0%, #0a0e17 70%);
+    z-index: 10;
+    transition: opacity 0.5s;
+  }
+
+  #startScreen.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  #startScreen .title {
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 900;
+    color: #00e5ff;
+    text-shadow: 0 0 30px rgba(0,229,255,0.5), 0 0 60px rgba(0,229,255,0.2);
+    margin-bottom: 12px;
+    letter-spacing: 4px;
+    animation: titleGlow 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes titleGlow {
+    0% { text-shadow: 0 0 20px rgba(0,229,255,0.4), 0 0 40px rgba(0,229,255,0.15); }
+    100% { text-shadow: 0 0 40px rgba(0,229,255,0.7), 0 0 80px rgba(0,229,255,0.3); }
+  }
+
+  #startScreen .subtitle {
+    font-size: clamp(14px, 2.5vw, 18px);
+    color: #8b9bb4;
+    margin-bottom: 30px;
+    text-align: center;
+    line-height: 1.8;
+  }
+
+  #startScreen .subtitle span {
+    display: inline-block;
+    background: #141b25;
+    color: #c0c8d4;
+    padding: 3px 10px;
+    border-radius: 6px;
+    margin: 2px 4px;
+    border: 1px solid #263040;
+  }
+
+  #startBtn {
+    padding: 16px 64px;
+    font-size: clamp(18px, 3vw, 24px);
+    font-weight: 700;
+    color: #0a0e17;
+    background: linear-gradient(135deg, #00e5ff, #2979ff);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    box-shadow: 0 0 30px rgba(0,229,255,0.3);
+    transition: all 0.3s;
+    letter-spacing: 3px;
+    animation: btnPulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes btnPulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(0,229,255,0.25); }
+    50% { box-shadow: 0 0 40px rgba(0,229,255,0.55); }
+  }
+
+  #startBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 50px rgba(0,229,255,0.5);
+  }
+
+  #startBtn:active {
+    transform: scale(0.96);
+  }
+
+  /* Game Over Screen */
+  #gameOverScreen {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 20;
+    background: rgba(5,8,15,0.85);
+  }
+
+  #gameOverScreen.show {
+    display: flex;
+  }
+
+  #gameOverScreen .overText {
+    font-size: clamp(22px, 4vw, 36px);
+    font-weight: 900;
+    color: #ff5252;
+    text-shadow: 0 0 30px rgba(255,82,82,0.6), 0 0 60px rgba(255,82,82,0.3);
+    margin-bottom: 20px;
+    text-align: center;
+    animation: shakeText 0.5s ease-in-out;
+  }
+
+  @keyframes shakeText {
+    0%, 100% { transform: translateX(0); }
+    10%, 50%, 90% { transform: translateX(-6px); }
+    30%, 70% { transform: translateX(6px); }
+  }
+
+  #restartBtn {
+    padding: 14px 50px;
+    font-size: clamp(16px, 2.5vw, 20px);
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #ff5252, #c62828);
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 6px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    animation: appear 0.5s ease-out 0.3s both;
+  }
+
+  @keyframes appear {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  #restartBtn:hover {
+    background: #fff;
+    color: #ff5252;
+    border-color: #fff;
+  }
+
+  /* Food Buttons */
+  #foodButtons {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    z-index: 5;
+    padding: 10px 16px 16px;
+    background: linear-gradient(180deg, transparent, rgba(10,14,23,0.9));
+    border-radius: 12px 12px 0 0;
+  }
+
+  #foodButtons.hidden {
+    display: none;
+  }
+
+  .foodBtn {
+    width: 70px;
+    height: 70px;
+    border-radius: 10px;
+    border: 2px solid #263040;
+    background: #141b25;
+    font-size: 32px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .foodBtn:hover {
+    border-color: #00e5ff;
+    box-shadow: 0 0 16px rgba(0,229,255,0.2);
+  }
+
+  .foodBtn.active {
+    border-color: #00e5ff;
+    background: #0d1a2d;
+    box-shadow: 0 0 24px rgba(0,229,255,0.35), inset 0 0 12px rgba(0,229,255,0.08);
+    transform: translateY(-4px);
+  }
+
+  .foodBtn .keyHint {
+    position: absolute;
+    bottom: -2px;
+    font-size: 10px;
+    color: #6b7b8d;
+    background: #0a0e17;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #263040;
+  }
+
+  /* Floating hearts (CSS) */
+  .floating-heart {
+    position: absolute;
+    pointer-events: none;
+    font-size: 24px;
+    animation: floatUp 1.5s ease-out forwards;
+    z-index: 8;
+  }
+
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-120px) scale(1.5); }
+  }
+
+  /* Virtual Shoot Button (mobile) */
+  #shootBtn {
+    display: none;
+    position: absolute;
+    bottom: 100px;
+    right: 20px;
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    border: 2px solid #00e5ff;
+    background: linear-gradient(135deg, #141b25, #0d1a2d);
+    font-size: 38px;
+    color: #fff;
+    z-index: 6;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(0,229,255,0.25);
+    transition: transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  #shootBtn:active {
+    transform: scale(0.85);
+    box-shadow: 0 0 30px rgba(0,229,255,0.5);
+  }
+
+  #shootBtn.show {
+    display: flex;
+  }
+
+  /* Touch hint overlay */
+  #touchHint {
+    display: none;
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255,255,255,0.35);
+    font-size: 12px;
+    z-index: 4;
+    text-align: center;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  #touchHint.show {
+    display: block;
+  }
+
+  /* Mobile responsive */
+  @media (max-width: 600px) {
+    #shootBtn.show {
+      bottom: 95px;
+      right: 12px;
+      width: 66px;
+      height: 66px;
+      font-size: 30px;
+    }
+
+    .foodBtn {
+      width: 56px;
+      height: 56px;
+      font-size: 26px;
+    }
+
+    #foodButtons {
+      gap: 8px;
+      padding: 8px 10px 14px;
+    }
+
+    #startBtn {
+      padding: 14px 40px;
+      font-size: 18px;
+    }
+  }
+
+  @media (min-width: 1025px) {
+    #shootBtn.show {
+      display: none !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div id="gameContainer">
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- Start Screen -->
+  <div id="startScreen">
+    <div class="title">🎯 投喂大作战</div>
+    <div class="subtitle" id="startInstructions">
+      <span class="pcOnly">🎮 A/D 或 ← →  移动角色</span>
+      <span class="mobileOnly" style="display:none">👆 左右滑动 移动角色</span><br>
+      <span class="pcOnly">🔫 空格键 发射食物</span>
+      <span class="mobileOnly" style="display:none">🔫 点击按钮 / 轻触屏幕 发射</span><br>
+      <span>🔢 1 / 2 / 3 切换弹药</span><br>
+      <span>⚠️ 看到「随便」忍住别开枪 +15分</span>
+    </div>
+    <button id="startBtn" onclick="startGame()">▶  START GAME</button>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="gameOverScreen">
+    <div class="overText">💀 GAME OVER</div>
+    <button id="restartBtn" onclick="restartGame()">↺ 重新挑战</button>
+  </div>
+
+  <!-- Food Selector Buttons -->
+  <div id="foodButtons" class="hidden">
+    <button class="foodBtn active" data-food="0" style="position:relative;">
+      🧋<span class="keyHint">1</span>
+    </button>
+    <button class="foodBtn" data-food="1" style="position:relative;">
+      🍗<span class="keyHint">2</span>
+    </button>
+    <button class="foodBtn" data-food="2" style="position:relative;">
+      🥗<span class="keyHint">3</span>
+    </button>
+  </div>
+
+  <!-- Virtual Shoot Button (mobile) -->
+  <button id="shootBtn">🔫</button>
+
+  <!-- Touch hint -->
+  <div id="touchHint">👆 左右滑动移动 &nbsp;|&nbsp; 轻触屏幕发射</div>
+</div>
+
+<script>
+// ==================== DOM ELEMENTS ====================
+const container = document.getElementById('gameContainer');
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const startScreen = document.getElementById('startScreen');
+const gameOverScreen = document.getElementById('gameOverScreen');
+const foodButtons = document.getElementById('foodButtons');
+const foodBtnEls = document.querySelectorAll('.foodBtn');
+const shootBtn = document.getElementById('shootBtn');
+const touchHint = document.getElementById('touchHint');
+
+// Detect touch device
+const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+// ==================== CANVAS SETUP ====================
+function resizeCanvas() {
+  const rect = container.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr, dpr);
+}
+resizeCanvas();
+window.addEventListener('resize', () => {
+  resizeCanvas();
+});
+
+function getW() { return container.clientWidth; }
+function getH() { return container.clientHeight; }
+
+// ==================== AUDIO SYSTEM ====================
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new AudioCtx(); } catch(e) {}
+  }
+}
+
+function playTone(freq, duration, type, vol, delay) {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime + (delay || 0);
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type || 'square';
+  osc.frequency.setValueAtTime(freq, t);
+  gain.gain.setValueAtTime(vol || 0.08, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(t);
+  osc.stop(t + duration);
+}
+
+function sfxShoot()    { playTone(880, 0.06, 'square', 0.05); }
+function sfxCorrect()  { playTone(523, 0.08, 'square', 0.07, 0); playTone(659, 0.08, 'square', 0.07, 0.08); playTone(784, 0.12, 'square', 0.08, 0.16); }
+function sfxWrong()    { playTone(180, 0.25, 'sawtooth', 0.08); }
+function sfxGameOver() { playTone(400, 0.15, 'sawtooth', 0.1, 0); playTone(300, 0.15, 'sawtooth', 0.1, 0.12); playTone(200, 0.2, 'sawtooth', 0.1, 0.24); playTone(100, 0.4, 'sawtooth', 0.12, 0.36); }
+function sfxSuibian()   { playTone(300, 0.15, 'triangle', 0.05); }
+
+// ==================== IMAGES ====================
+const images = {
+  normal: new Image(),
+  happy: new Image(),
+  angry: new Image(),
+  explode: new Image()
+};
+let imagesOk = { normal: false, happy: false, angry: false, explode: false };
+
+images.normal.src = 'pic/gf_nomal.jpg';
+images.happy.src = 'pic/gf_happy.jpg';
+images.angry.src = 'pic/gf_angry.jpg';
+images.explode.src = 'pic/gf_explode.jpg';
+
+images.normal.onload = () => { imagesOk.normal = true; };
+images.happy.onload = () => { imagesOk.happy = true; };
+images.angry.onload = () => { imagesOk.angry = true; };
+images.explode.onload = () => { imagesOk.explode = true; };
+
+images.normal.onerror = () => { imagesOk.normal = false; };
+images.happy.onerror = () => { imagesOk.happy = false; };
+images.angry.onerror = () => { imagesOk.angry = false; };
+images.explode.onerror = () => { imagesOk.explode = false; };
+
+function getBossImg() {
+  if (boss.emotionTimer > 0) {
+    if (boss.emotionType === 'happy' && imagesOk.happy) return images.happy;
+    if (boss.emotionType === 'angry' && imagesOk.angry) return images.angry;
+  }
+  if (imagesOk.normal) return images.normal;
+  return null;
+}
+
+// ==================== GAME STATE ====================
+const STATE = { START: 'start', PLAYING: 'playing', GAMEOVER: 'gameover' };
+let gameState = STATE.START;
+let rage = 0;
+let score = 0;
+let lastTime = 0;
+let frameTime = 0;
+let gameOverReason = '';
+let suibianFired = false;  // Track if player shot during "随便"
+
+// ==================== FOOD TYPES ====================
+const FOODS = [
+  { name: '奶茶', emoji: '🧋', key: '1' },
+  { name: '炸鸡', emoji: '🍗', key: '2' },
+  { name: '沙拉', emoji: '🥗', key: '3' }
+];
+const DEMANDS = [...FOODS, { name: '随便', emoji: '🤷‍♀️', key: null }];
+
+// ==================== PLAYER ====================
+const player = {
+  x: 0,
+  y: 0,
+  width: 60,
+  height: 80,
+  speed: 350,  // px/s
+  foodIndex: 0,
+  shootCooldown: 0,
+  shootCooldownMax: 0.35,  // seconds
+  // Touch support
+  targetX: 0,
+  isTouching: false
+};
+
+function resetPlayer() {
+  const w = getW(), h = getH();
+  player.x = w / 2;
+  player.y = h - 100;
+  player.foodIndex = 0;
+  player.shootCooldown = 0;
+  player.targetX = w / 2;
+  player.isTouching = false;
+}
+
+// ==================== BOSS ====================
+const boss = {
+  x: 0,
+  y: 0,
+  baseY: 0,
+  width: 130,
+  height: 130,
+  speed: 120,
+  direction: 1,
+  demandIndex: 0,
+  demandTimer: 0,
+  demandDuration: 5,
+  emotionTimer: 0,
+  emotionType: 'happy',
+  // Scale animation
+  scaleTimer: 0,
+  currentScale: 1
+};
+
+function resetBoss() {
+  const w = getW();
+  boss.x = w / 2;
+  boss.baseY = 190;
+  boss.y = boss.baseY;
+  boss.direction = Math.random() > 0.5 ? 1 : -1;
+  boss.emotionTimer = 0;
+  boss.emotionType = 'happy';
+  boss.scaleTimer = 0;
+  boss.currentScale = 1;
+  suibianFired = false;
+  generateDemand();
+}
+
+function generateDemand() {
+  suibianFired = false;
+  // 15% chance for "随便" challenge
+  if (Math.random() < 0.15) {
+    boss.demandIndex = 3;
+    boss.demandDuration = 2.5;
+  } else {
+    boss.demandIndex = Math.floor(Math.random() * 3);
+    boss.demandDuration = 6 + Math.random() * 4;
+  }
+  boss.demandTimer = boss.demandDuration;
+}
+
+// ==================== BULLETS ====================
+const bullets = [];
+const BULLET_SPEED = 550;
+
+function spawnBullet() {
+  if (player.shootCooldown > 0) return;
+  if (gameState !== STATE.PLAYING) return;
+  player.shootCooldown = player.shootCooldownMax;
+  sfxShoot();
+  bullets.push({
+    x: player.x,
+    y: player.y - player.height / 2 - 10,
+    foodIndex: player.foodIndex,
+    width: 30,
+    height: 30
+  });
+}
+
+// ==================== PARTICLES ====================
+const particles = [];
+
+function spawnParticles(x, y, color, count, emoji) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 80 + Math.random() * 200;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 60,
+      life: 0.6 + Math.random() * 0.6,
+      maxLife: 0.6 + Math.random() * 0.6,
+      color,
+      emoji: emoji || null,
+      size: 6 + Math.random() * 10
+    });
+  }
+}
+
+// ==================== DANMAKU (弹幕) ====================
+const danmakuTexts = [];
+
+function spawnDanmaku(text, x, y, color, size) {
+  danmakuTexts.push({
+    x: x !== undefined ? x : getW() + 50,
+    y: y !== undefined ? y : 30 + Math.random() * (getH() * 0.4),
+    text,
+    color: color || '#00e5ff',
+    size: size || 16 + Math.random() * 14,
+    life: 1.5 + Math.random() * 2,
+    maxLife: 1.5 + Math.random() * 2,
+    vx: -120 - Math.random() * 100
+  });
+}
+
+// ==================== DECORATIVE PARTICLES (Background) ====================
+const bgParticles = [];
+function initBgHearts() {
+  bgParticles.length = 0;
+  const w = getW(), h = getH();
+  for (let i = 0; i < 80; i++) {
+    bgParticles.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      size: 1 + Math.random() * 3.5,
+      baseSpeed: 8 + Math.random() * 22,
+      speed: 0,
+      driftAmp: 3 + Math.random() * 12,
+      driftFreq: 0.3 + Math.random() * 0.8,
+      opacity: 0.15 + Math.random() * 0.45,
+      hue: Math.random() < 0.6 ? 190 : (Math.random() < 0.5 ? 220 : 260),
+      phase: Math.random() * Math.PI * 2,
+      twinkle: Math.random() * Math.PI * 2
+    });
+  }
+}
+
+// ==================== INPUT ====================
+const keys = {};
+let touchStartTime = 0;
+let touchStartX = 0;
+let touchStartY = 0;
+let touchMoved = false;
+
+window.addEventListener('keydown', e => {
+  keys[e.key] = true;
+
+  if (gameState === STATE.PLAYING) {
+    if (e.key === ' ') {
+      e.preventDefault();
+      spawnBullet();
+    }
+    if (e.key === '1') setFood(0);
+    if (e.key === '2') setFood(1);
+    if (e.key === '3') setFood(2);
+  }
+});
+
+window.addEventListener('keyup', e => {
+  keys[e.key] = false;
+});
+
+foodBtnEls.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const idx = parseInt(btn.dataset.food);
+    setFood(idx);
+  });
+});
+
+// --- Touch controls (mobile) ---
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  if (gameState !== STATE.PLAYING) return;
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  touchStartX = touch.clientX - rect.left;
+  touchStartY = touch.clientY - rect.top;
+  touchStartTime = Date.now();
+  touchMoved = false;
+  player.targetX = touchStartX;
+  player.isTouching = true;
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (gameState !== STATE.PLAYING || !player.isTouching) return;
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const tx = touch.clientX - rect.left;
+  const ty = touch.clientY - rect.top;
+  const dx = tx - touchStartX;
+  const dy = ty - touchStartY;
+  if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+    touchMoved = true;
+  }
+  player.targetX = tx;
+  // Clamp target
+  const w = getW();
+  player.targetX = Math.max(player.width / 2, Math.min(w - player.width / 2, player.targetX));
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  if (gameState !== STATE.PLAYING) return;
+  // Quick tap (no significant movement) = shoot
+  const dt = Date.now() - touchStartTime;
+  if (!touchMoved && dt < 300) {
+    spawnBullet();
+  }
+  player.isTouching = false;
+}, { passive: false });
+
+canvas.addEventListener('touchcancel', () => {
+  player.isTouching = false;
+});
+
+// --- Virtual shoot button ---
+shootBtn.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (gameState === STATE.PLAYING) spawnBullet();
+});
+shootBtn.addEventListener('click', () => {
+  if (gameState === STATE.PLAYING) spawnBullet();
+});
+
+function setFood(index) {
+  player.foodIndex = index;
+  foodBtnEls.forEach((b, i) => {
+    b.classList.toggle('active', i === index);
+  });
+}
+
+// ==================== GAME FLOW ====================
+function startGame() {
+  gameState = STATE.PLAYING;
+  rage = 0;
+  score = 0;
+  gameOverReason = '';
+  bullets.length = 0;
+  particles.length = 0;
+  danmakuTexts.length = 0;
+  initBgHearts();
+
+  resizeCanvas();
+  resetPlayer();
+  resetBoss();
+  setFood(0);
+
+  startScreen.classList.add('hidden');
+  gameOverScreen.classList.remove('show');
+  foodButtons.classList.remove('hidden');
+  lastTime = performance.now();
+
+  // Initialize audio on first interaction
+  initAudio();
+
+  // Show mobile controls if touch device
+  if (isTouchDevice) {
+    shootBtn.classList.add('show');
+    touchHint.classList.add('show');
+    // Swap instructions: hide PC, show mobile
+    document.querySelectorAll('.pcOnly').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.mobileOnly').forEach(el => el.style.display = 'inline-block');
+    // Hide keyboard hints on food buttons
+    document.querySelectorAll('.keyHint').forEach(el => el.style.display = 'none');
+  }
+}
+
+function restartGame() {
+  startGame();
+}
+
+function triggerGameOver(reason) {
+  gameState = STATE.GAMEOVER;
+  gameOverReason = reason;
+  rage = 100;
+  foodButtons.classList.add('hidden');
+  shootBtn.classList.remove('show');
+  touchHint.classList.remove('show');
+
+  // Spawn explosion particles
+  const w = getW(), h = getH();
+  spawnParticles(w / 2, h / 2, '#ff5252', 40, '💥');
+  spawnParticles(w / 2, h / 2, '#ff7043', 30, '😡');
+  spawnParticles(w / 2, h / 2, '#ffd740', 20, '💢');
+
+  gameOverScreen.classList.add('show');
+  sfxGameOver();
+}
+
+// ==================== UPDATE ====================
+function update(dt) {
+  if (gameState !== STATE.PLAYING) {
+    // Still update particles
+    updateParticles(dt);
+    updateDanmaku(dt);
+    return;
+  }
+
+  const w = getW(), h = getH();
+
+  // --- Rage increase (slower: 2.5%/s) ---
+  rage = Math.min(100, rage + 2.5 * dt);
+  if (rage >= 100) {
+    triggerGameOver('rage_full');
+    return;
+  }
+
+  // --- Player movement ---
+  if (player.isTouching) {
+    // Touch: smoothly follow finger position
+    const lerpSpeed = 14;
+    player.x += (player.targetX - player.x) * Math.min(1, lerpSpeed * dt);
+  } else {
+    // Keyboard
+    const moveLeft = keys['a'] || keys['A'] || keys['ArrowLeft'];
+    const moveRight = keys['d'] || keys['D'] || keys['ArrowRight'];
+    if (moveLeft && !moveRight) player.x -= player.speed * dt;
+    if (moveRight && !moveLeft) player.x += player.speed * dt;
+  }
+  player.x = Math.max(player.width / 2, Math.min(w - player.width / 2, player.x));
+
+  // --- Shoot cooldown ---
+  if (player.shootCooldown > 0) player.shootCooldown -= dt;
+
+  // --- Boss movement ---
+  boss.x += boss.speed * boss.direction * dt;
+  if (boss.x - boss.width / 2 < 0) {
+    boss.x = boss.width / 2;
+    boss.direction = 1;
+  }
+  if (boss.x + boss.width / 2 > w) {
+    boss.x = w - boss.width / 2;
+    boss.direction = -1;
+  }
+  // Float animation
+  boss.y = boss.baseY + Math.sin(frameTime / 1000 * 2.5) * 8;
+
+  // --- Boss emotion timer ---
+  if (boss.emotionTimer > 0) boss.emotionTimer -= dt;
+
+  // --- Boss scale animation ---
+  if (boss.scaleTimer > 0) {
+    boss.scaleTimer -= dt;
+    const targetScale = boss.emotionType === 'happy' ? 1.35 : 1.15;
+    if (boss.scaleTimer > 0.3) {
+      // Zoom in
+      boss.currentScale += (targetScale - boss.currentScale) * 10 * dt;
+    } else {
+      // Zoom out
+      boss.currentScale += (1 - boss.currentScale) * 6 * dt;
+    }
+  } else {
+    boss.currentScale += (1 - boss.currentScale) * 6 * dt;
+  }
+
+  // --- Demand timer ---
+  const prevDemand = DEMANDS[boss.demandIndex];
+  boss.demandTimer -= dt;
+  if (boss.demandTimer <= 0) {
+    // Check if "随便" ended without player firing → reward!
+    if (prevDemand.name === '随便' && !suibianFired) {
+      score += 15;
+      spawnDanmaku('忍耐成功 +15！🎉', boss.x, boss.y, '#ffd740', 24);
+      spawnParticles(boss.x, boss.y, '#ffd740', 20, '⭐');
+      sfxCorrect();
+    }
+    generateDemand();
+    // Danmaku notification for new demand
+    const dem = DEMANDS[boss.demandIndex];
+    if (dem.name === '随便') {
+      spawnDanmaku('🤷 你敢随便试试？', w + 20, boss.y - 30, '#ff9800', 22);
+      spawnDanmaku('忍住别开枪！+15', w + 20, boss.y + 30, '#ffd740', 16);
+    }
+  }
+
+  // --- Update bullets ---
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    bullets[i].y -= BULLET_SPEED * dt;
+    if (bullets[i].y < -30) {
+      bullets.splice(i, 1);
+    }
+  }
+
+  // --- Collision detection ---
+  const bossLeft = boss.x - boss.width / 2 + 10;
+  const bossRight = boss.x + boss.width / 2 - 10;
+  const bossTop = boss.y - boss.height / 2 + 10;
+  const bossBottom = boss.y + boss.height / 2 - 10;
+
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    const b = bullets[i];
+    const bLeft = b.x - b.width / 2;
+    const bRight = b.x + b.width / 2;
+    const bTop = b.y - b.height / 2;
+    const bBottom = b.y + b.height / 2;
+
+    // AABB collision
+    if (bRight > bossLeft && bLeft < bossRight && bBottom > bossTop && bTop < bossBottom) {
+      // HIT!
+      const demand = DEMANDS[boss.demandIndex];
+      const isSuibian = demand.name === '随便';
+
+      if (isSuibian) {
+        // � Patience test failed! Penalty but not instant death
+        suibianFired = true;
+        rage = Math.min(100, rage + 10);
+        sfxWrong();
+        spawnParticles(boss.x, boss.y, '#ff9800', 15, '😤');
+        spawnDanmaku('说了别开枪！！', boss.x, boss.y, '#ff9800', 22);
+        spawnDanmaku('+10% 暴躁', boss.x + 40, boss.y - 20, '#ff5252', 16);
+      }
+
+      if (b.foodIndex === boss.demandIndex && !isSuibian) {
+        // CORRECT! Timer keeps counting, no instant reset
+        rage = Math.max(0, rage - 20);
+        score += 10;
+        boss.emotionTimer = 1.0;
+        boss.emotionType = 'happy';
+        boss.scaleTimer = 0.7;
+        sfxCorrect();
+        spawnParticles(boss.x, boss.y, '#ffd740', 25, '🎯');
+        spawnParticles(boss.x, boss.y, '#69f0ae', 20, '✨');
+        spawnDanmaku('+10 ✓', boss.x + 40, boss.y - 20, '#69f0ae', 22);
+        spawnDanmaku('投喂成功！', boss.x - 80, boss.y, '#00e5ff', 16);
+      } else if (!isSuibian) {
+        // ❌ WRONG!
+        rage = Math.min(100, rage + 10);
+        boss.emotionTimer = 1.0;
+        boss.emotionType = 'angry';
+        boss.scaleTimer = 0.5;
+        sfxWrong();
+        spawnParticles(boss.x, boss.y, '#ff5252', 20, '💢');
+        spawnDanmaku('+10% 暴躁！😡', boss.x + 40, boss.y - 20, '#ff5252', 18);
+        spawnDanmaku('打错了！', boss.x - 80, boss.y, '#ff5252', 16);
+      }
+
+      bullets.splice(i, 1);
+
+      if (rage >= 100) {
+        triggerGameOver('wrong_feed');
+        return;
+      }
+    }
+  }
+
+  // --- Update particles ---
+  updateParticles(dt);
+
+  // --- Update danmaku ---
+  updateDanmaku(dt);
+
+  // --- Random danmaku ---
+  if (Math.random() < dt * 0.8) {
+    const msgs = ['加油！💪', '注意气泡', '稳住别浪', '◆', '切弹药！', '别打错了！', '😋'];
+    spawnDanmaku(msgs[Math.floor(Math.random() * msgs.length)], undefined, undefined, '#4a5568', 14);
+  }
+
+  // --- Update bg particles ---
+  for (const p of bgParticles) {
+    p.speed = p.baseSpeed + Math.sin(frameTime / 2000 * p.driftFreq + p.phase) * p.driftAmp;
+    p.y -= p.speed * dt;
+    p.x += Math.cos(frameTime / 3000 * p.driftFreq + p.phase) * p.driftAmp * 0.5 * dt;
+    if (p.y < -10) { p.y = getH() + 10; p.x = Math.random() * w; }
+    if (p.x < -10) p.x = w + 10;
+    if (p.x > w + 10) p.x = -10;
+  }
+
+  // --- Rage warning danmaku ---
+  if (rage > 70 && Math.random() < dt * 0.5) {
+    spawnDanmaku('暴躁值危险！⚠️', w + 20, 60 + Math.random() * 80, '#ff5252', 18);
+  }
+}
+
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dt;
+    if (p.life <= 0) {
+      particles.splice(i, 1);
+    }
+  }
+}
+
+function updateDanmaku(dt) {
+  for (let i = danmakuTexts.length - 1; i >= 0; i--) {
+    const d = danmakuTexts[i];
+    d.x += d.vx * dt;
+    d.life -= dt;
+    if (d.life <= 0 || d.x < -300) {
+      danmakuTexts.splice(i, 1);
+    }
+  }
+}
+
+// ==================== RENDER ====================
+function render() {
+  const w = getW(), h = getH();
+  ctx.clearRect(0, 0, w, h);
+
+  // --- Background ---
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+  bgGrad.addColorStop(0, '#0a0e17');
+  bgGrad.addColorStop(0.35, '#111827');
+  bgGrad.addColorStop(0.6, '#141b25');
+  bgGrad.addColorStop(1, '#0d1117');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // --- Background particles ---
+  for (const p of bgParticles) {
+    const twinkleAlpha = p.opacity * (0.7 + 0.3 * Math.sin(frameTime / 1500 + p.twinkle));
+    ctx.globalAlpha = twinkleAlpha;
+    const hue = p.hue;
+    const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 1.8);
+    grad.addColorStop(0, `hsla(${hue}, 80%, 70%, 1)`);
+    grad.addColorStop(0.4, `hsla(${hue}, 60%, 50%, 0.5)`);
+    grad.addColorStop(1, `hsla(${hue}, 50%, 30%, 0)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * 1.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  if (gameState === STATE.GAMEOVER) {
+    renderGameOver(w, h);
+    renderParticles();
+    renderDanmaku();
+    return;
+  }
+
+  if (gameState === STATE.START) {
+    // Draw a cute preview behind the start screen
+    drawBossFallback(w / 2, 180, 120, 'normal');
+    ctx.fillStyle = '#ffd740';
+    ctx.font = '40px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🙇‍♂️', w / 2, h - 100);
+    return;
+  }
+
+  // ========== GAMEPLAY RENDER ==========
+
+  // --- Boss ---
+  drawBoss();
+
+  // --- Demand bubble ---
+  drawDemandBubble();
+
+  // --- Bullets ---
+  for (const b of bullets) {
+    const food = FOODS[b.foodIndex];
+    ctx.font = '30px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    // Glow
+    ctx.shadowColor = 'rgba(0,229,255,0.5)';
+    ctx.shadowBlur = 12;
+    ctx.fillText(food.emoji, b.x, b.y);
+    ctx.shadowBlur = 0;
+  }
+
+  // --- Player ---
+  drawPlayer();
+
+  // --- Rage bar ---
+  drawRageBar(w);
+
+  // --- Score ---
+  ctx.fillStyle = '#ffd740';
+  ctx.font = 'bold 22px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(`⭐ ${score} 分`, w - 20, 55);
+
+  // --- Current food indicator ---
+  const food = FOODS[player.foodIndex];
+  ctx.fillStyle = 'rgba(20,27,37,0.9)';
+  ctx.beginPath();
+  ctx.roundRect(w / 2 - 45, h - 145, 90, 36, 6);
+  ctx.fill();
+  ctx.strokeStyle = '#263040';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = '#c0c8d4';
+  ctx.font = '14px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`当前: ${food.emoji} ${food.name}`, w / 2, h - 123);
+
+  // --- Particles ---
+  renderParticles();
+
+  // --- Danmaku ---
+  renderDanmaku();
+}
+
+function drawBoss() {
+  const img = getBossImg();
+
+  if (img) {
+    // Draw boss image with scale animation
+    ctx.save();
+    ctx.translate(boss.x, boss.y);
+    ctx.scale(boss.currentScale, boss.currentScale);
+    // Subtle glow based on emotion
+    if (boss.emotionTimer > 0) {
+      if (boss.emotionType === 'happy') {
+        ctx.shadowColor = 'rgba(0,229,255,0.6)';
+      } else {
+        ctx.shadowColor = 'rgba(255,82,82,0.5)';
+      }
+      ctx.shadowBlur = 25;
+    }
+    ctx.drawImage(img, -boss.width / 2, -boss.height / 2, boss.width, boss.height);
+    ctx.restore();
+  } else {
+    drawBossFallback(boss.x, boss.y, boss.width, 'normal');
+  }
+
+  // Emotion overlay emoji
+  if (boss.emotionTimer > 0) {
+    ctx.font = '36px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const alpha = Math.min(1, boss.emotionTimer / 0.3);
+    ctx.globalAlpha = alpha;
+    if (boss.emotionType === 'happy') {
+      ctx.fillText('✨', boss.x + 40, boss.y - 40);
+    } else {
+      ctx.fillText('💢', boss.x + 40, boss.y - 40);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawBossFallback(cx, cy, size, mood) {
+  // Fallback: draw a cute anime-style face
+  const r = size / 2;
+  const x = cx - r;
+  const y = cy - r;
+
+  // Face
+  let faceColor = '#ffe0bd';
+  if (mood === 'angry') faceColor = '#ffcccc';
+  if (mood === 'happy') faceColor = '#ffe0bd';
+
+  ctx.fillStyle = faceColor;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#e0c0a0';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // Hair (simple bangs)
+  ctx.fillStyle = '#4a3728';
+  ctx.beginPath();
+  ctx.arc(cx, cy - r * 0.4, r * 1.05, Math.PI, Math.PI * 2);
+  ctx.fill();
+
+  // Eyes
+  const eyeY = cy - r * 0.15;
+  if (mood === 'angry') {
+    // Angry eyes: slanted
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.4, eyeY - 8);
+    ctx.lineTo(cx - r * 0.15, eyeY + 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + r * 0.4, eyeY - 8);
+    ctx.lineTo(cx + r * 0.15, eyeY + 2);
+    ctx.stroke();
+  } else if (mood === 'happy') {
+    // Happy eyes: arcs
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.25, eyeY, r * 0.18, Math.PI * 0.1, Math.PI * 0.9);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx + r * 0.25, eyeY, r * 0.18, Math.PI * 0.1, Math.PI * 0.9);
+    ctx.stroke();
+  } else {
+    // Normal eyes
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.25, eyeY, r * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx + r * 0.25, eyeY, r * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Mouth
+  if (mood === 'angry') {
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy + r * 0.45, r * 0.2, Math.PI * 0.1, Math.PI * 0.9);
+    ctx.stroke();
+  } else if (mood === 'happy') {
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.arc(cx, cy + r * 0.3, r * 0.15, 0, Math.PI);
+    ctx.fill();
+  } else {
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy + r * 0.35, r * 0.15, 0, Math.PI);
+    ctx.stroke();
+  }
+}
+
+function drawDemandBubble() {
+  const demand = DEMANDS[boss.demandIndex];
+  const isSuibian = demand.name === '随便';
+  const bx = boss.x;
+  const by = boss.y - boss.height / 2 - 25;
+
+  // Bubble dimensions
+  const bubbleW = 160;
+  const bubbleH = 48;
+  const bubbleX = bx - bubbleW / 2;
+  const bubbleY = by - bubbleH;
+
+  // Bubble background
+  ctx.fillStyle = isSuibian
+    ? (suibianFired ? 'rgba(255,82,82,0.9)' : 'rgba(255,152,0,0.9)')
+    : 'rgba(20,27,37,0.92)';
+  ctx.strokeStyle = isSuibian
+    ? (suibianFired ? '#ff5252' : '#ff9800')
+    : '#263040';
+  ctx.lineWidth = 2.5;
+
+  // Rounded rect
+  const radius = 16;
+  ctx.beginPath();
+  ctx.moveTo(bubbleX + radius, bubbleY);
+  ctx.lineTo(bubbleX + bubbleW - radius, bubbleY);
+  ctx.quadraticCurveTo(bubbleX + bubbleW, bubbleY, bubbleX + bubbleW, bubbleY + radius);
+  ctx.lineTo(bubbleX + bubbleW, bubbleY + bubbleH - radius);
+  ctx.quadraticCurveTo(bubbleX + bubbleW, bubbleY + bubbleH, bubbleX + bubbleW - radius, bubbleY + bubbleH);
+  ctx.lineTo(bubbleX + bubbleW / 2 + 10, bubbleY + bubbleH);
+  ctx.lineTo(bubbleX + bubbleW / 2, bubbleY + bubbleH + 14);
+  ctx.lineTo(bubbleX + bubbleW / 2 - 10, bubbleY + bubbleH);
+  ctx.lineTo(bubbleX + radius, bubbleY + bubbleH);
+  ctx.quadraticCurveTo(bubbleX, bubbleY + bubbleH, bubbleX, bubbleY + bubbleH - radius);
+  ctx.lineTo(bubbleX, bubbleY + radius);
+  ctx.quadraticCurveTo(bubbleX, bubbleY, bubbleX + radius, bubbleY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Bubble text
+  ctx.fillStyle = isSuibian ? '#fff' : '#00e5ff';
+  ctx.font = 'bold 18px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const text = isSuibian
+    ? (suibianFired ? '😤 叫你别开枪！' : '🤷 你敢随便试试？')
+    : `${demand.emoji} ${demand.name}`;
+  ctx.fillText(text, bx, bubbleY + bubbleH / 2);
+
+  // Timer bar on bubble
+  const timerRatio = boss.demandTimer / boss.demandDuration;
+  const timerW = bubbleW - 20;
+  const timerX = bubbleX + 10;
+  const timerY = bubbleY + bubbleH - 6;
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.fillRect(timerX, timerY, timerW, 4);
+  ctx.fillStyle = isSuibian ? '#ffd740' : '#00e5ff';
+  ctx.fillRect(timerX, timerY, timerW * timerRatio, 4);
+}
+
+function drawPlayer() {
+  const px = player.x;
+  const py = player.y;
+
+  // Launcher platform
+  ctx.fillStyle = '#141b25';
+  ctx.strokeStyle = '#00e5ff';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.roundRect(px - 35, py - 10, 70, 20, 10);
+  ctx.fill();
+  ctx.stroke();
+
+  // Player emoji
+  ctx.font = '50px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,229,255,0.2)';
+  ctx.shadowBlur = 8;
+  ctx.fillText('🙇‍♂️', px, py - 35);
+  ctx.shadowBlur = 0;
+
+  // Selected food floating above player
+  const food = FOODS[player.foodIndex];
+  ctx.font = '26px sans-serif';
+  const bobY = Math.sin(frameTime / 1000 * 4) * 4;
+  ctx.fillText(food.emoji, px, py - 68 + bobY);
+}
+
+function drawRageBar(w) {
+  const barX = 15;
+  const barY = 15;
+  const barW = w - 30;
+  const barH = 22;
+  const radius = 11;
+
+  // Background
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.roundRect(barX, barY, barW, barH, radius);
+  ctx.fill();
+
+  // Fill
+  const fillW = (barW - 4) * (rage / 100);
+  if (fillW > 0) {
+    const fillGrad = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+    if (rage < 40) {
+      fillGrad.addColorStop(0, '#4caf50');
+      fillGrad.addColorStop(1, '#8bc34a');
+    } else if (rage < 70) {
+      fillGrad.addColorStop(0, '#ff9800');
+      fillGrad.addColorStop(1, '#ffc107');
+    } else {
+      fillGrad.addColorStop(0, '#f44336');
+      fillGrad.addColorStop(1, '#ff5722');
+    }
+    ctx.fillStyle = fillGrad;
+    ctx.beginPath();
+    ctx.roundRect(barX + 2, barY + 2, fillW, barH - 4, radius - 2);
+    ctx.fill();
+
+    // Pulsing when high
+    if (rage > 70) {
+      const pulse = Math.sin(frameTime / 1000 * 8) * 0.3 + 0.7;
+      ctx.fillStyle = `rgba(255,82,82,${pulse * 0.4})`;
+      ctx.beginPath();
+      ctx.roundRect(barX + 2, barY + 2, fillW, barH - 4, radius - 2);
+      ctx.fill();
+    }
+  }
+
+  // Border
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(barX, barY, barW, barH, radius);
+  ctx.stroke();
+
+  // Label
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 13px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(`暴躁值 ${Math.round(rage)}%`, barX + barW / 2, barY + barH / 2);
+
+  // Emoji indicator
+  ctx.font = '18px sans-serif';
+  ctx.textAlign = 'left';
+  const emojiX = barX + fillW - 18;
+  if (rage < 30) ctx.fillText('😊', Math.max(barX + 5, emojiX), barY + barH / 2);
+  else if (rage < 60) ctx.fillText('😐', Math.max(barX + 5, emojiX), barY + barH / 2);
+  else if (rage < 85) ctx.fillText('😤', Math.max(barX + 5, emojiX), barY + barH / 2);
+  else ctx.fillText('🤬', Math.max(barX + 5, emojiX), barY + barH / 2);
+}
+
+function renderGameOver(w, h) {
+  // Dark overlay
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, w, h);
+
+  // Explosion image
+  if (imagesOk.explode) {
+    const imgRatio = images.explode.width / images.explode.height;
+    const canvasRatio = w / h;
+    let dw, dh;
+    if (imgRatio > canvasRatio) {
+      dw = w;
+      dh = w / imgRatio;
+    } else {
+      dh = h;
+      dw = h * imgRatio;
+    }
+    const dx = (w - dw) / 2;
+    const dy = (h - dh) / 2;
+    ctx.globalAlpha = 0.7;
+    ctx.drawImage(images.explode, dx, dy, dw, dh);
+    ctx.globalAlpha = 1;
+  } else {
+    // Fallback explosion
+    ctx.font = `${Math.min(w, h) * 0.4}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('💥', w / 2, h / 2 - 20);
+    ctx.fillText('😡', w / 2 - 80, h / 2 + 20);
+    ctx.fillText('😡', w / 2 + 80, h / 2 + 20);
+  }
+}
+
+function renderParticles() {
+  for (const p of particles) {
+    const alpha = p.life / p.maxLife;
+    if (p.emoji) {
+      ctx.globalAlpha = alpha;
+      ctx.font = `${p.size + 8}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(p.emoji, p.x, p.y);
+    } else {
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function renderDanmaku() {
+  for (const d of danmakuTexts) {
+    const alpha = Math.min(1, d.life / d.maxLife);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = d.color;
+    ctx.font = `bold ${d.size}px "PingFang SC","Microsoft YaHei",sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(255,255,255,0.8)';
+    ctx.shadowBlur = 4;
+    ctx.fillText(d.text, d.x, d.y);
+    ctx.shadowBlur = 0;
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ==================== GAME LOOP ====================
+function gameLoop(timestamp) {
+  if (!lastTime) lastTime = timestamp;
+  let dt = (timestamp - lastTime) / 1000;
+  lastTime = timestamp;
+  frameTime = timestamp;
+
+  // Cap delta time
+  if (dt > 0.1) dt = 0.1;
+  if (dt <= 0) dt = 0.016;
+
+  update(dt);
+  render();
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ==================== INIT ====================
+function init() {
+  resizeCanvas();
+  initBgHearts();
+  resetPlayer();
+  resetBoss();
+  // Render initial state
+  render();
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+}
+
+// ==================== CSS roundRect polyfill ====================
+if (!ctx.roundRect) {
+  ctx.roundRect = function (x, y, w, h, r) {
+    if (typeof r === 'number') r = { tl: r, tr: r, br: r, bl: r };
+    ctx.beginPath();
+    ctx.moveTo(x + r.tl, y);
+    ctx.lineTo(x + w - r.tr, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r.tr);
+    ctx.lineTo(x + w, y + h - r.br);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r.br, y + h);
+    ctx.lineTo(x + r.bl, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r.bl);
+    ctx.lineTo(x, y + r.tl);
+    ctx.quadraticCurveTo(x, y, x + r.tl, y);
+    ctx.closePath();
+  };
+}
+
+// ==================== START ====================
+init();
+</script>
+</body>
+</html>
